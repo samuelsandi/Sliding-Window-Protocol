@@ -60,3 +60,70 @@ Untuk memudahkan penilaian, silahkan gunakan format berikut untuk menjalankan pr
 ```
 ./recvfile <filename> <windowsize> <buffersize> <port>
 ```
+
+## Petunjuk Penggunaan Program
+
+**1. Compiling**
+* compile receiver.c dan sender.c
+```
+make
+```
+* compile receiver.c
+```
+make receive
+```
+* compile sender.c
+```
+make sender
+```
+
+**2. Running**
+* receiver.c
+```
+./receiver <filename> <windowsize> <buffersize> <port>
+```
+contoh:
+```
+./receiver out.txt 5 5 8080
+```
+* sender.c
+```
+./sender <filename> <windowsize> <buffersize> <destination_ip> <destination_port>
+```
+contoh:
+```
+./sender tes.txt 5 5 127.0.0.1 8080
+```
+
+## Cara Kerja
+
+Program Sliding Window Protokol yang telah kami buat kurang lebih menirukan cara kerja
+Sliding Window Protokol dengan Selective Repeat. Kode terdiri dari 3 file utama yaitu:
+
+* receiver.c
+* sender.c
+* frame.c
+
+reciever.c dan sender.c berjalan secara bersamaan, dimana sender.c yang akan mengirimkan
+file dan receiver.c akan menerima isi file dan membuat file baru dengan isi yang sama
+frame.c berisi implementasi dari fungsi-fungsi yang digunakan pada sender.c dan receiver.c
+
+* *frame_to_raw* : 
+Mengubah data yang ada dalam frame menjadi array of character agar mudah dihitung dalam 
+fungsi count_checksum
+* *ack_to_raw* : 
+Mengubah data yang ada dalam ack menjadi array of character agar mudah dihitung dalam 
+fungsi count_checksum
+* *count_checksum* :
+Menerima isi frame atau ACK dalam bentuk raw beserta panjang frame - 1 (panjang frame 
+seluruhnya dikurangi byte checksum) dan mengembalikan nilai checksum paket tersebut
+* *main (pada receiver.c dan sender.c)* :
+Mengimplementasikan prosedur receive file dan send file
+
+## Pembagian Tugas
+
+1. Gloryanson (13516060): 
+2. Samuel (13516069): 
+3. Prisila (13516129): 
+
+
