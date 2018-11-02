@@ -199,7 +199,7 @@ int main(int argc, char *argv[]){
                     
                     packet_ack send_ack;
 
-                    //if (checksum_str(frm) == frm.checksum){
+                    //if (count_checksum(frm) == frm.checksum){
                         send_ack.ack = 0x1;
                     //} else {    //dia NAK
                         //send_ack.ack = 0x0;
@@ -211,7 +211,7 @@ int main(int argc, char *argv[]){
                     char* raw = (char*) malloc(6*sizeof(char));
 
                     ack_to_raw(send_ack,raw);
-                    send_ack.checksum = checksum_str(raw,5);
+                    send_ack.checksum = count_checksum(raw,5);
                     raw[5] = send_ack.checksum;
 
                     sendto(udpSocket,raw,6,0,(struct sockaddr*) &clientAddress, clientSize);
