@@ -86,7 +86,7 @@ void to_ack(packet_ack* ack_frm, char* raw) {
 }
 
 char count_checksum (char* x, int length) {	//Fungsi ini menerima isi frame atau ACK dalam bentuk raw beserta panjang frame - 1 (panjang frame seluruhnya dikurangi byte checksum) dan mengembalikan nilai checksum paket tersebut
-	int n = 0;
+	unsigned int n = 0;
 	while(length--) {
 		n += (unsigned char) *(x++);
 	}

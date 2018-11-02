@@ -206,8 +206,6 @@ int main(int argc, char *argv[]){
                     //}
                     
                     send_ack.nextSeqNumber = frm.seqNumber + 1;
-                    send_ack.checksum = 0x0;
-                    
                     char* raw = (char*) malloc(6*sizeof(char));
 
                     ack_to_raw(send_ack,raw);
