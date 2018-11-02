@@ -15,16 +15,16 @@ src/frame.c
 
 default:
 	[ -d $(BIN) ] || mkdir -p $(BIN) 
-	$(CC) $(SENDSOURCES) -o bin/sendfile
-	$(CC) $(RECEIVESOURCES) -o bin/recvfile
-
+	$(CC) $(SENDSOURCES) -o bin/sendfile -w
+	$(CC) $(RECEIVESOURCES) -o bin/recvfile -w
+ 
 sender:
 	[ -d $(BIN) ] || mkdir -p $(BIN)
-	$(CC) $(SENDSOURCES) -o bin/sendfile
+	$(CC) $(SENDSOURCES) -o bin/sendfile -w
 
 receiver:
 	[ -d $(BIN) ] || mkdir -p $(BIN)
-	$(CC) $(RECEIVESOURCES) -o bin/recvfile
+	$(CC) $(RECEIVESOURCES) -o bin/recvfile -w
 
 
 
