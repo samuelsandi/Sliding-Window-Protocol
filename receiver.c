@@ -203,7 +203,7 @@ int main(int argc, char *argv[]){
                 char* raw = (char*) malloc(6*sizeof(char));
 
                 ack_to_raw(send_ack,raw);
-                send_ack.checksum = checksum_str(raw,5);
+                send_ack.checksum = count_checksum(raw,5);//Mengisi byte checksum dengan hasil perhitungan fungsi count_checksum
                 raw[5] = send_ack.checksum;
 
                 sendto(udpSocket,raw,6,0,(struct sockaddr*) &clientAddress, clientSize);

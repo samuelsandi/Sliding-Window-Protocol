@@ -85,13 +85,12 @@ void to_ack(packet_ack* ack_frm, char* raw) {
 	free(x);
 }
 
-char checksum_str(char* x, int length) {	//gausah diubah" sih hrsnya udh jalan tp gangerti knp kaya gini
+char count_checksum (char* x, int length) {	//Fungsi ini menerima isi frame atau ACK dalam bentuk raw beserta panjang frame - 1 (panjang frame seluruhnya dikurangi byte checksum) dan mengembalikan nilai checksum paket tersebut
 	int n = 0;
 	while(length--) {
-		n += (char) *(x++);
-		printf("%c \n",*x); 
+		n += (unsigned char) *(x++);
 	}
-	return (char) n;
+	return (unsigned char) n;
 }
 
 frame create_frame(int n, int dl, char* c){	//belum beres

@@ -102,9 +102,10 @@ int main(int argc, char *argv[]){
 			
 			framesize = length + 10;
 			frame frm = create_frame(n,length,temp); 
-			char* raw = (char*) malloc(sizeof(char)*framesize); //ini dia bikin jadi raw itu cuma buat checksum ya wkkw menarik tp mmg bener klo ga mau kaya gimana checksumnya
+			char* raw = (char*) malloc(sizeof(char)*framesize);//Inisiasi variabel untuk perhitungan checksum
 			frame_to_raw(frm, raw);
-			frm.checksum = checksum_str(raw, 8);	//checksum blm dicek
+			frm.checksum = count_checksum(raw, framesize-1);//Mengisi byte checksum pada frame dgn hasil perhitungan fungsi	
+			printf("Hasil checksum: %d",frm.checksum);
 			send_buffer.frames[n] = frm;    //trs nanti frame yg udh jadi (ada datanya+checksum) dimasukin ke send_buffer.frames[n]
 			n++;
 		}
