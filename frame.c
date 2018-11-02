@@ -64,18 +64,25 @@ void to_frame(frame* frm, char* raw) {
 
 void ack_to_raw(packet_ack ack_frm, char* raw) {
 	raw[0] = ack_frm.ack;
-	char* x = (char*) &ack_frm.nextSeqNumber;
+	char* x = (char*) malloc(sizeof(char)*4);
+	sprintf(x,"%d",ack_frm.nextSeqNumber);
 	raw[1] = *x;
 	raw[2] = *(x+1);
 	raw[3] = *(x+2);
 	raw[4] = *(x+3);
 	raw[5] = ack_frm.checksum;
+	free(x);
 }
 
 void to_ack(packet_ack* ack_frm, char* raw) {
 	ack_frm->ack = *raw;
-	ack_frm->nextSeqNumber = ((int) *(raw+1)) + ((int) *(raw+2)<<8) + ((int) *(raw+3)<<16) + ((int) *(raw+4)<<24);
-	ack_frm->checksum = *(raw+5);	
+	char* x = (char*) malloc(sizeof(char)*4);
+	for(int i=0;i<4;i++) {
+		x[i] = *(raw+i+1);
+	}
+	ack_frm->nextSeqNumber = atoi(x);
+	ack_frm->checksum = *(raw+5);
+	free(x);
 }
 
 char checksum_str(char* x, int length) {	//gausah diubah" sih hrsnya udh jalan tp gangerti knp kaya gini
