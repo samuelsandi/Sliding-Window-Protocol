@@ -52,37 +52,40 @@ void init_socket(int* udpSocket, int port){
 }
 
 void writeToFile(char* filename, char* message, int n) {
+    /*printf("hah\n");
     for(int i=0; i<n; i++){
         printf("WRITE : %c\n", message[i]);
-    }
+    }*/
     FILE *fp;
-    fp=fopen(filename, "a+");
+    fp = fopen(filename, "a+");
     fwrite(message, sizeof(message[0]), n, fp);
     fclose(fp);
 }
 
 void drainBufferArray(BufferArray* a, char* filename, int buffersize) { //buat nulis ke file
-    char temp[a->length];
+    printf("length buffer : %d \n", a->length); 
     for (int i = 0; i < a->length; i++) {
-        frame aframe = *(a->frames + i * 1034);
-        // printf(" %c",(char) aframe.data);
-        temp[i] = (char) aframe.data;
+        frame aframe = *(a->frames+i);
+        printf("data length : %d\n", aframe.dataLength);
+        writeToFile(filename, aframe.data, aframe.dataLength);
     }
     // printf("\n");
-    writeToFile(filename, temp, a->length);
     free(a->frames);
     initBufferArray(a,buffersize);
 }
 
 void insertBufferArray(BufferArray *a, frame aframe, int buffersize) {
-    int curr = a->length * 1034;
-    int last_mem = curr + 1034;
+    printf("masuk insert buffer array\n");
+    int curr = a->length;
+    int last_mem = curr + 1;
 
     if (last_mem >= buffersize){
+        printf("berarti masuk sini???\n");
     } else {
         *(a->frames + curr) = aframe;
         a->length = a->length + 1;
     }
+    printf("seqNumber : %d\n",aframe.seqNumber);
 }
 
 void initFile(char* filename){
@@ -96,7 +99,7 @@ int main(int argc, char *argv[]){
     if(argc < 5){
         die("<filename> <windowsize> <buffersize> <port>");
     }
-
+    printf("ini file apa\n"); fflush(stdout);
     // read from argument
     char* filename = argv[1];
     int RWS = atoi(argv[2]);
@@ -123,13 +126,12 @@ int main(int argc, char *argv[]){
     int maxLFR = 0;
     int finished = 0;
 
-    while(1){
+    while (1) {
         char* frame_buff;
         struct sockaddr_in clientAddress;
         int clientSize = sizeof(clientAddress);
 
         frame frm;
-
         int emptySpace = buffersize;
         
         while (seqNum < buffersize && emptySpace > 0) {
@@ -140,75 +142,82 @@ int main(int argc, char *argv[]){
             FD_ZERO(&select_fds);
             FD_SET(udpSocket, &select_fds);
 
-            timeout.tv_sec = 5;
+            timeout.tv_sec = 1;
             timeout.tv_usec = 0;
 
             if (select(32, &select_fds, NULL, NULL, &timeout) == 0) {  
                 printf("Waiting for packet...\n");
             } else {
                 // receive from client
+                printf("LFR: %d  seqNum: %d  windowsize: %d\n", LFR, seqNum, windowsize); //n gantinya apa
                 frame_buff = (char*) malloc(sizeof(char)*1034);
                 len = recvfrom(udpSocket,frame_buff,1034,0,(struct sockaddr*) &clientAddress, &clientSize);
                 to_frame(&frm,frame_buff);
                 free(frame_buff);
 
-                printf("[%ld] frame %d caught | have a data\n %s\n", time(NULL), frm.seqNumber, frm.data); fflush(stdout);
-            
+                printf("[%ld] frame %d caught | have a data\n", time(NULL), frm.seqNumber); fflush(stdout);
+
                 if (frm.seqNumber == -1) {
-                    drainBufferArray(&recv_buffer,filename, buffersize);    //pindahin dari buffer ke file
+                    printf("kan\n");    fflush(stdout);
+                    drainBufferArray(&recv_buffer, filename, buffersize);    //pindahin dari buffer ke file
                     printf("FINISH ALL MSG\n");
                     finished = 1;
                     break;
-                }
-                // insert to buffer & accept frame
-                insertBufferArray(&recv_buffer,frm,buffersize);
+                } else {
+                    //nanti hrs dicek salah ga, kalau salah kirim NAK.
+                    // insert to buffer & accept frame
+                    insertBufferArray(&recv_buffer,frm,buffersize);
+                    emptySpace = emptySpace - 1;
 
-                LFR = frm.seqNumber;
-                if (LFR > maxLFR) { //LFR equivalent sama LAR
-                    maxLFR = LFR;
-                }    
+                    LFR = frm.seqNumber;
+                    if (LFR > maxLFR) { //LFR equivalent sama LAR
+                        maxLFR = LFR;
+                    }    
 
-                if (LFR == seqNum) { //antara geser 1 atau geser banyak
-                    if (maxLFR == LFR) {    //geser 1
-                        printf("    geser 1\n"); fflush(stdout);
-                        seqNum = seqNum + 1;    //geser sisi kiri sliding window
-                        windowsize = windowsize + 1;    //geser sisi kanan sliding window
-                    } else if (maxLFR > LFR) { //geser banyak
-                        printf("    geser banyak\n"); fflush(stdout);
-                        seqNum = seqNum + (maxLFR - LFR);
-                        windowsize = windowsize + (maxLFR - LFR);
+                    if (LFR == seqNum) { //antara geser 1 atau geser banyak
+                        printf("\n"); fflush(stdout);
+                        if (maxLFR == LFR) {    //geser 1
+                            printf("    geser 1\n"); fflush(stdout);
+                            seqNum = seqNum + 1;    //geser sisi kiri sliding window
+                            windowsize = windowsize + 1;    //geser sisi kanan sliding window
+                        } else if (maxLFR > LFR) { //geser banyak
+                            printf("    geser banyak\n"); fflush(stdout);
+                            seqNum = seqNum + (maxLFR - LFR);
+                            windowsize = windowsize + (maxLFR - LFR);
+                        }
                     }
+
+                    printf("---------\n");
+                    printf(" Frame SeqNum : %d \n", frm.seqNumber);
+                    printf(" LFR : %d \n", LFR);
+                    printf(" RWS : %d \n", RWS);
+                    printf(" LAF : %d \n", LAF);
+                    printf(" MAX : %d\n", buffersize);
+                    printf(" --------\n");
+                    printf(" Next frame number %d \n", frm.seqNumber + 1);
+                    printf("---------\n\n");
+                    
+                    packet_ack send_ack;
+
+                    //if (checksum_str(frm) == frm.checksum){
+                        send_ack.ack = 0x1;
+                    //} else {    //dia NAK
+                        //send_ack.ack = 0x0;
+                    //}
+                    
+                    send_ack.nextSeqNumber = frm.seqNumber + 1;
+                    send_ack.checksum = 0x0;
+                    
+                    char* raw = (char*) malloc(6*sizeof(char));
+
+                    ack_to_raw(send_ack,raw);
+                    send_ack.checksum = checksum_str(raw,5);
+                    raw[5] = send_ack.checksum;
+
+                    sendto(udpSocket,raw,6,0,(struct sockaddr*) &clientAddress, clientSize);
+                    printf("BERHASIL SEND\n");
+                    free(raw);
                 }
-                
-                printf("\n");
-                emptySpace = emptySpace - 1;
-
-                printf("%d\n", frm.seqNumber);
-
-                printf("---------\n");
-                printf(" LFR : %d \n", LFR);
-                printf(" RWS : %d \n", RWS);
-                printf(" LAF : %d \n", LAF);
-                printf(" MAX : %d\n", buffersize);
-                printf(" --------\n");
-                printf(" Next frame number %d \n", frm.seqNumber + 1);
-                printf("---------\n\n");
-                
-                packet_ack send_ack;
-                
-                send_ack.ack = 0x1;
-                send_ack.nextSeqNumber = frm.seqNumber + 1;
-                send_ack.checksum = 0x0;
-                
-                char* raw = (char*) malloc(6*sizeof(char));
-
-                ack_to_raw(send_ack,raw);
-                send_ack.checksum = count_checksum(raw,5);//Mengisi byte checksum dengan hasil perhitungan fungsi count_checksum
-                raw[5] = send_ack.checksum;
-
-                sendto(udpSocket,raw,6,0,(struct sockaddr*) &clientAddress, clientSize);
-                printf("BERHASIL SEND\n");
-                free(raw);
             }
         }
 
@@ -217,8 +226,8 @@ int main(int argc, char *argv[]){
         }
 
         // if next frame hit maximum allowed buffer
-        if(emptySpace == 0){
-            drainBufferArray(&recv_buffer,filename, buffersize);
+        if (emptySpace == 0) {
+            drainBufferArray(&recv_buffer,filename,buffersize);
             LFR = -1;
             seqNum = 0;
             windowsize = seqNum + RWS;

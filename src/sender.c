@@ -78,7 +78,7 @@ int main(int argc, char *argv[]){
     int LFS = -1;
 
 	int c;
-	while(1){
+	while (1) {
 		free(send_buffer.frames);
 		initBufferArray(&send_buffer,buffersize);
 		printf("[%ld] prepare %d frame to buffer\n", time(NULL), buffersize); fflush(stdout);
@@ -95,17 +95,16 @@ int main(int argc, char *argv[]){
 				length = length + 1;
 			}
 
-			if (c == EOF) {
+			/*if (c == EOF) {
 				temp[length-1] = '\0';
 				length = length - 1;
-			}
+			}*/
 			
 			framesize = length + 10;
 			frame frm = create_frame(n,length,temp); 
-			char* raw = (char*) malloc(sizeof(char)*framesize);//Inisiasi variabel untuk perhitungan checksum
+			char* raw = (char*) malloc(sizeof(char)*framesize); //ini dia bikin jadi raw itu cuma buat checksum ya wkkw menarik tp mmg bener klo ga mau kaya gimana checksumnya
 			frame_to_raw(frm, raw);
-			frm.checksum = count_checksum(raw, framesize-1);//Mengisi byte checksum pada frame dgn hasil perhitungan fungsi	
-			printf("Hasil checksum: %d",frm.checksum);
+			frm.checksum = checksum_str(raw, 8);	//checksum blm dicek
 			send_buffer.frames[n] = frm;    //trs nanti frame yg udh jadi (ada datanya+checksum) dimasukin ke send_buffer.frames[n]
 			n++;
 		}
@@ -202,7 +201,7 @@ int main(int argc, char *argv[]){
 							windowsize = windowsize + (maxLAR - LAR);
 						}
 					}
-				} else {	//ack.ack == 0x0
+				} else if (ack.ack == 0x0 /*|| checksum_str(ack) == ack.checksum*/){	//ack.ack == 0x0
 					printf("NAK ini\n");
 					int resendSeqNum = ack.nextSeqNumber - 1;
 					DelSpecific(&packets,resendSeqNum);
@@ -221,7 +220,7 @@ int main(int argc, char *argv[]){
 			}
         }
         
-        if(c == EOF){
+        if (c == EOF) {
 			// send last sentinel
 			frame s = create_sentinel();
 			frame_buff = (char*) malloc(sizeof(char)*11);
