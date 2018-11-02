@@ -81,7 +81,8 @@ void to_ack(packet_ack* ack_frm, char* raw) {
 char checksum_str(char* x, int length) {	//gausah diubah" sih hrsnya udh jalan tp gangerti knp kaya gini
 	int n = 0;
 	while(length--) {
-		n += (char) *(x++); 
+		n += (char) *(x++);
+		printf("%c \n",*x); 
 	}
 	return (char) n;
 }
