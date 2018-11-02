@@ -90,7 +90,7 @@ char count_checksum (char* x, int length) {	//Fungsi ini menerima isi frame atau
 	while(length--) {
 		n += (unsigned char) *(x++);
 	}
-	return (unsigned char) n;
+	return (unsigned char) ~n;
 }
 
 frame create_frame(int n, int dl, char* c){	//belum beres

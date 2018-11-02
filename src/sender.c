@@ -102,9 +102,9 @@ int main(int argc, char *argv[]){
 			
 			framesize = length + 10;
 			frame frm = create_frame(n,length,temp); 
-			char* raw = (char*) malloc(sizeof(char)*framesize); //ini dia bikin jadi raw itu cuma buat checksum ya wkkw menarik tp mmg bener klo ga mau kaya gimana checksumnya
+			char* raw = (char*) malloc(sizeof(char)*framesize);
 			frame_to_raw(frm, raw);
-			frm.checksum = checksum_str(raw, 8);	//checksum blm dicek
+			frm.checksum = count_checksum(raw, 8);
 			send_buffer.frames[n] = frm;    //trs nanti frame yg udh jadi (ada datanya+checksum) dimasukin ke send_buffer.frames[n]
 			n++;
 		}
@@ -201,7 +201,7 @@ int main(int argc, char *argv[]){
 							windowsize = windowsize + (maxLAR - LAR);
 						}
 					}
-				} else if (ack.ack == 0x0 /*|| checksum_str(ack) == ack.checksum*/){	//ack.ack == 0x0
+				} else if (ack.ack == 0x0 /*|| count_checksum(ack) == ack.checksum*/){	//ack.ack == 0x0
 					printf("NAK ini\n");
 					int resendSeqNum = ack.nextSeqNumber - 1;
 					DelSpecific(&packets,resendSeqNum);
