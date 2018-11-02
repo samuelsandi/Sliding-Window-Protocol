@@ -27,11 +27,7 @@ ulang paket tersebut. Untuk mengetahui paket mana saja yang sudah di-acknowledge
 paket diberi nomor urut (sequence number). Di sisi penerima B, jika B menerima suatu paket,
 maka B akan memeriksa apakah terdapat error dari paket yang diterima. Jika ada, maka B akan
 mengirim NAK yang meminta paket tersebut dikirim ulang. Jika tidak ada error, B akan
-mengirim ACK yang berisi nomor urut dari paket selanjutnya. Untuk lebih memahami Sliding
-Window Protocol, silahkan lihat simulasinya di
-http://www.ccs-labs.org/teaching/rn/animations/gbn_sr/. Teori yang dijelaskan pada bagian ini
-hanyalah gambaran kasar saja. Peserta diminta untuk mengeksplorasi lebih jauh secara
-mandiri.
+mengirim ACK yang berisi nomor urut dari paket selanjutnya. 
 
 ## Spesifikasi Tugas
 Program yang akan dibuat terdiri dari dua file, yaitu sender dan receiver. Implementasi
@@ -50,49 +46,40 @@ Berikut ini adalah format dari ACK yang dikirim.
 | ACK  | Next Sequence Number | Checksum |
 | ------------- | ------------- | ------------- |
 | 1 byte  | 4 byte  | 1 byte  |
-
-Untuk mensimulasikan packet loss, anda dapat menggunakan tools pumba yang detailnya
-dapat dilihat pada https://github.com/alexei-led/pumba.
-Untuk memudahkan penilaian, silahkan gunakan format berikut untuk menjalankan program.
-```
-./sendfile <filename> <windowsize> <buffersize> <destination_ip> <destination_port>
-```
-```
-./recvfile <filename> <windowsize> <buffersize> <port>
 ```
 
 ## Petunjuk Penggunaan Program
 
 **1. Compiling**
-* compile receiver.c dan sender.c
+* compile receive.c dan sender.c menjadi recvfile dan sendfile
 ```
 make
 ```
-* compile receiver.c
+* compile receiver.c menjadi recvfile
 ```
 make receive
 ```
-* compile sender.c
+* compile sender.c menjadi sendfile
 ```
 make sender
 ```
 
 **2. Running**
-* receiver.c
+* Recvfile
 ```
-./receiver <filename> <windowsize> <buffersize> <port>
-```
-contoh:
-```
-./receiver out.txt 5 5 8080
-```
-* sender.c
-```
-./sender <filename> <windowsize> <buffersize> <destination_ip> <destination_port>
+./recvfile <filename> <windowsize> <buffersize> <port>
 ```
 contoh:
 ```
-./sender tes.txt 5 5 127.0.0.1 8080
+./recvfile ../data/output.txt 5 5 8080
+```
+* Sendfile
+```
+./sendfile <filename> <windowsize> <buffersize> <destination_ip> <destination_port>
+```
+contoh:
+```
+./sendfile ../data/input.txt 5 5 127.0.0.1 8080
 ```
 
 ## Cara Kerja
@@ -123,7 +110,7 @@ Mengimplementasikan prosedur receive file dan send file
 ## Pembagian Tugas
 
 1. Gloryanson (13516060): 
-2. Samuel (13516069): 
-3. Prisila (13516129): 
+2. Samuel Sandi Kristianto Lim(13516069): 
+3. Prisila Michelle(13516129): 
 
 
