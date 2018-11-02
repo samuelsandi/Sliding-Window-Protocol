@@ -12,7 +12,6 @@ typedef struct {
 } Buffer;
 
 void initBuffer(Buffer* a, int buffersize) {
-    // free(a->frames);
     a->frames = (frame*) malloc(buffersize * sizeof(frame));
     a->length = 0;
 }
@@ -23,102 +22,91 @@ void die(char *s){
 }
 
 void initSocket(int* udpSocket, int port){
-    /*Create UDP socket*/
+    //try to create UDP socket
     *udpSocket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
     if(*udpSocket < 0){
         die("Failed to create UDP Socket");
     }
 
-    /*Configure settings in address struct*/
     struct sockaddr_in server_addr;
     memset(&server_addr, 0, sizeof(server_addr));  
     server_addr.sin_family = AF_INET;
     server_addr.sin_port = htons(port);
     server_addr.sin_addr.s_addr = htonl(INADDR_ANY);
 
-    // setting timeout
+    //set timeout
     struct timeval tv;
     tv.tv_sec = 0.5;
-    tv.tv_usec = 0;  // Not init'ing this can cause strange errors
+    tv.tv_usec = 0;
     setsockopt(*udpSocket, SOL_SOCKET, SO_RCVTIMEO, (const char*)&tv,sizeof(struct timeval));
 
-    /*Bind socket with address struct*/
+    //try to bind socket with address struct
     if(bind(*udpSocket, (struct sockaddr *) &server_addr, sizeof(server_addr)) < 0){
         die("Couldn't bind socket");
     }
 
-    printf("[%d] socket success on port %d\n", (int) time(NULL), port);
-    fflush(stdout);
+    printf("Create UDP Socket on port : %d SUCCESS\n", port); fflush(stdout);
 }
 
 void writeToFile(char* filename, char* message, int n) {
-    /*printf("hah\n");
-    for(int i=0; i<n; i++){
-        printf("WRITE : %c\n", message[i]);
-    }*/
-    FILE *fp;
-    fp = fopen(filename, "a+");
-    fwrite(message, sizeof(message[0]), n, fp);
-    fclose(fp);
+    FILE *outfile;
+    outfile = fopen(filename, "a+");
+    fwrite(message, sizeof(message[0]), n, outfile);
+    fclose(outfile);
 }
 
 void emptyBufferContent(Buffer* a, char* filename, int buffersize) { //buat nulis ke file
-    printf("length buffer : %d \n", a->length); 
+    printf("Buffer length : %d \n", a->length); 
     for (int i = 0; i < a->length; i++) {
         frame aframe = *(a->frames+i);
-        printf("data length : %d\n", aframe.dataLength);
+        printf("Data length : %d\n", aframe.dataLength);
         writeToFile(filename, aframe.data, aframe.dataLength);
     }
-    // printf("\n");
+    printf("\n");
     free(a->frames);
     initBuffer(a,buffersize);
 }
 
 void insertToBuffer(Buffer *a, frame aframe, int buffersize) {
-    printf("masuk insert buffer array\n");
     int curr = a->length;
     int last_mem = curr + 1;
 
-    if (last_mem >= buffersize){
-        printf("berarti masuk sini???\n");
+    if (last_mem > buffersize){
     } else {
         *(a->frames + curr) = aframe;
         a->length = a->length + 1;
     }
-    printf("seqNumber : %d\n",aframe.seqNumber);
 }
 
 void openFile(char* filename){
-    FILE *fp;
-    fp=fopen(filename, "w");
-    fclose(fp);
+    FILE *outfile;
+    outfile = fopen(filename, "w");
+    fclose(outfile);
 }
 
-int main(int argc, char *argv[]){
+int main(int argc, char *argv[]){ 
     
     if(argc < 5){
         die("<filename> <windowsize> <buffersize> <port>");
     }
-    printf("ini file apa\n"); fflush(stdout);
-    // read from argument
+   
+    //accept argument
     char* filename = argv[1];
     int RWS = atoi(argv[2]);
     int buffersize = atoi(argv[3]);
     int port = atoi(argv[4]);
 
     int udpSocket, len;
-    // open connection
+    //create socket
     initSocket(&udpSocket, port);
 
     // initial buffer
     Buffer recv_buffer;
     initBuffer(&recv_buffer,buffersize);
 
-    // initial file
+    //create file if not created yet, open file if already created
     openFile(filename);
-
     
-    //LAF equivalent sama LFS
     int LFR = -1;
     int seqNum = 0;
     int windowsize = seqNum + RWS;
@@ -135,7 +123,7 @@ int main(int argc, char *argv[]){
         int emptySpace = buffersize;
         
         while (seqNum < buffersize && emptySpace > 0) {
-             // timeout setting
+            //set timeout
             fd_set select_fds;
             struct timeval timeout;
 
@@ -148,40 +136,35 @@ int main(int argc, char *argv[]){
             if (select(32, &select_fds, NULL, NULL, &timeout) == 0) {  
                 printf("Waiting for packet...\n");
             } else {
-                // receive from client
-                printf("LFR: %d  seqNum: %d  windowsize: %d\n", LFR, seqNum, windowsize); //n gantinya apa
+                //receive packet
                 frame_buff = (char*) malloc(sizeof(char)*1034);
                 len = recvfrom(udpSocket,frame_buff,1034,0,(struct sockaddr*) &clientAddress, &clientSize);
                 to_frame(&frm,frame_buff);
                 free(frame_buff);
 
-                printf("[%ld] frame %d caught | have a data\n", time(NULL), frm.seqNumber); fflush(stdout);
+                printf("Caught frame %d\n", frm.seqNumber); fflush(stdout);
 
-                if (frm.seqNumber == -1) {
-                    printf("kan\n");    fflush(stdout);
-                    emptyBufferContent(&recv_buffer, filename, buffersize);    //pindahin dari buffer ke file
-                    printf("FINISH ALL MSG\n");
+                if (frm.seqNumber == -1) {    
+                    emptyBufferContent(&recv_buffer, filename, buffersize);    //move buffer content to file
+                    printf("All frame has been received.\n"); fflush(stdout);
                     finished = 1;
                     break;
                 } else {
-                    //nanti hrs dicek salah ga, kalau salah kirim NAK.
-                    // insert to buffer & accept frame
+                    // insert packet to buffer
                     insertToBuffer(&recv_buffer,frm,buffersize);
                     emptySpace = emptySpace - 1;
+                    printf("%d\n",emptySpace);
 
                     LFR = frm.seqNumber;
-                    if (LFR > maxLFR) { //LFR equivalent sama LAR
+                    if (LFR > maxLFR) {
                         maxLFR = LFR;
                     }    
 
-                    if (LFR == seqNum) { //antara geser 1 atau geser banyak
-                        printf("\n"); fflush(stdout);
-                        if (maxLFR == LFR) {    //geser 1
-                            printf("    geser 1\n"); fflush(stdout);
-                            seqNum = seqNum + 1;    //geser sisi kiri sliding window
-                            windowsize = windowsize + 1;    //geser sisi kanan sliding window
-                        } else if (maxLFR > LFR) { //geser banyak
-                            printf("    geser banyak\n"); fflush(stdout);
+                    if (LFR == seqNum) {
+                        if (maxLFR == LFR) {    
+                            seqNum = seqNum + 1;
+                            windowsize = windowsize + 1;
+                        } else if (maxLFR > LFR) {
                             seqNum = seqNum + (maxLFR - LFR);
                             windowsize = windowsize + (maxLFR - LFR);
                         }
@@ -189,11 +172,6 @@ int main(int argc, char *argv[]){
 
                     printf("---------\n");
                     printf(" Frame SeqNum : %d \n", frm.seqNumber);
-                    printf(" LFR : %d \n", LFR);
-                    printf(" RWS : %d \n", RWS);
-                    printf(" LAF : %d \n", LAF);
-                    printf(" MAX : %d\n", buffersize);
-                    printf(" --------\n");
                     printf(" Next frame number %d \n", frm.seqNumber + 1);
                     printf("---------\n\n");
                     
@@ -219,7 +197,7 @@ int main(int argc, char *argv[]){
                     rawAck[5] = send_ack.checksum;
 
                     sendto(udpSocket,rawAck,6,0,(struct sockaddr*) &clientAddress, clientSize);
-                    printf("BERHASIL SEND\n");
+                    printf("ACK sent.\n");
                     free(rawAck);
                 }
             }
@@ -229,7 +207,7 @@ int main(int argc, char *argv[]){
             break;
         }
 
-        // if next frame hit maximum allowed buffer
+        //if buffer is full
         if (emptySpace == 0) {
             emptyBufferContent(&recv_buffer,filename,buffersize);
             LFR = -1;

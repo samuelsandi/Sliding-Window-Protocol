@@ -37,8 +37,7 @@ int initSocket(int* udpSocket, struct sockaddr_in *address, char* ip, int port){
     address->sin_port = htons(port); 
     inet_aton(ip , &address->sin_addr);
 
-    printf("Create UDP Socket on address : %s port : %d SUCCESS\n", ip, port);
-	fflush(stdout);
+    printf("Create UDP Socket on address : %s port : %d SUCCESS\n", ip, port); fflush(stdout);
     return 1;
 }
 
@@ -61,9 +60,9 @@ int main(int argc, char *argv[]){
     initSocket(&udpSocket, &clientAddress, destinationip, atoi(argv[5]));
 
     //try to open file
-    FILE *fp;
-    fp = fopen(filename, "r");
-    if(fp == NULL){
+    FILE *inputfile;
+    inputfile = fopen(filename, "r");
+    if(inputfile == NULL){
         die("Could not open file");
     }
 
@@ -84,13 +83,13 @@ int main(int argc, char *argv[]){
 		
 		//input file to buffer
 		int n = 0;
-		while (n < buffersize && (c = fgetc(fp)) != EOF){
-			ungetc(c,fp);                
+		while (n < buffersize && (c = fgetc(inputfile)) != EOF){
+			ungetc(c,inputfile);                
 			int length = 0;
 			int framesize = 0;
 			char* temp = (char*) malloc(sizeof(char)*1024);
 
-			while (length < 1024 && (c = fgetc(fp)) != EOF) {
+			while (length < 1024 && (c = fgetc(inputfile)) != EOF) {
 				temp[length] = (char) c;
 				length = length + 1;
 			}
