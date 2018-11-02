@@ -8,14 +8,14 @@
 #include "prioqueue.h"
 
 // GLOBAL
-#define ACKSIZE 6
+#define ackLength 6
 
 typedef struct {
   frame* frames;
   int length;
-} BufferArray;
+} Buffer;
 
-void initBufferArray(BufferArray* a, int buffersize) {
+void initBuffer(Buffer* a, int buffersize) {
     a->frames = (frame*) malloc(buffersize * sizeof(frame));
     a->length = 0;
 }
@@ -25,21 +25,20 @@ void die(char *s){
     exit(1);
 }
 
-int init_socket_address(int* udpSocket, struct sockaddr_in *address, char* ip, int port){
-    /*Create UDP socket*/
+int initSocket(int* udpSocket, struct sockaddr_in *address, char* ip, int port){
+    //try to create UDP socket
     *udpSocket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
     if(*udpSocket < 0){
         die("Failed to create UDP Socket");
     }
 
-    /*Configure settings in address struct*/
     memset(address, 0, sizeof(*address));
     address->sin_family = AF_INET;
     address->sin_port = htons(port); 
     inet_aton(ip , &address->sin_addr);
 
-    printf("[%d] success on address %s port %d\n", (int) time(NULL), ip, port);
-    fflush(stdout);
+    printf("Create UDP Socket on address : %s port : %d SUCCESS\n", ip, port);
+	fflush(stdout);
     return 1;
 }
 
@@ -49,42 +48,43 @@ int main(int argc, char *argv[]){
         die("<filename> <windowsize> <buffersize> <destination_ip> <destination_port>");
     }
 
-    // read from argument
+    //accept arguments
     char* filename = argv[1];
     int SWS = atoi(argv[2]);    //SWS = Send Window Size
-    int buffersize = atoi(argv[3]); //buffer size ganti dalam frame
+    int buffersize = atoi(argv[3]);
     char* destinationip = argv[4];
 
     int udpSocket, len;
     struct sockaddr_in clientAddress;
 
-    // open connection
-    init_socket_address(&udpSocket, &clientAddress, destinationip, atoi(argv[5]));
+    //create socket
+    initSocket(&udpSocket, &clientAddress, destinationip, atoi(argv[5]));
 
-    // open file to read
+    //try to open file
     FILE *fp;
     fp = fopen(filename, "r");
     if(fp == NULL){
-        die("Couldn't open file");
+        die("Could not open file");
     }
 
-    // initial buffer
-    BufferArray send_buffer;
-    initBufferArray(&send_buffer,buffersize);
+    //initial buffer
+    Buffer send_buffer;
+    initBuffer(&send_buffer,buffersize);
 
-    int LAR = -1;//, LFS = LAR + SWS; LAR = Sequence number of last acknowledgement received, LFS = last frame sent
+    int LAR = -1;	//LAR = Sequence number of last acknowledgement received 
     char* frame_buff;
     char* raw;
-    int LFS = -1;
+    int LFS = -1;	//LFS = last frame sent
 
 	int c;
 	while (1) {
 		free(send_buffer.frames);
-		initBufferArray(&send_buffer,buffersize);
-		printf("[%ld] prepare %d frame to buffer\n", time(NULL), buffersize); fflush(stdout);
+		initBuffer(&send_buffer,buffersize);
+		printf("Input %d frame to buffer\n", buffersize); fflush(stdout);
 		
+		//input file to buffer
 		int n = 0;
-		while (n < buffersize && (c = fgetc(fp)) != EOF){ //intinya ini itu buat bikin frame sejumlah buffersize/ sampe eof
+		while (n < buffersize && (c = fgetc(fp)) != EOF){
 			ungetc(c,fp);                
 			int length = 0;
 			int framesize = 0;
@@ -99,9 +99,9 @@ int main(int argc, char *argv[]){
 			frame frm = create_frame(n,length,temp); 
 			char* rawFrame = (char*) malloc(sizeof(char)*framesize);
 			frame_to_raw(frm, rawFrame);
-			frm.checksum = count_checksum(rawFrame, 1033);
+			frm.checksum = count_checksum(rawFrame, framesize);
 			free(rawFrame);
-			send_buffer.frames[n] = frm;    //trs nanti frame yg udh jadi (ada datanya+checksum) dimasukin ke send_buffer.frames[n]
+			send_buffer.frames[n] = frm;
 			n++;
 		}
 		
@@ -110,19 +110,18 @@ int main(int argc, char *argv[]){
 		
 		int isibuffer = n;
 		int maxLAR = 0;
-		int seqNum = 0;	//seqnum itu jd sisi kiri sliding window
-		int windowsize = seqNum + SWS;	//windowsize itu jadi sisi kanan sliding windows
+		int seqNum = 0;	
+		int windowsize = seqNum + SWS;
 		LFS = seqNum;
 		  
 		while (seqNum < buffersize && isibuffer > 0) {
-			//kirim 1 frame
-			printf("LFS: %d	windowsize: %d\n",LFS,windowsize);
-			if (LFS < n && LFS < windowsize){ //sw itu gunanya kalau ada ack yang belum sampe, dia gabisa kirim yg lain, tunggu dlu semua yg di window kekirim dan dapet ack
+			//send a frame
+			if (LFS < n && LFS < windowsize){
 				frame_buff = (char*) malloc(sizeof(char)*(send_buffer.frames[LFS].dataLength+10));
 				frame_to_raw(send_buffer.frames[LFS],frame_buff);
 				sendto(udpSocket,frame_buff,(send_buffer.frames[LFS].dataLength+10),0,(struct sockaddr *)&clientAddress,sizeof(clientAddress));
-				printf("[%ld] frame %d was sent\n", time(NULL), LFS); fflush(stdout);
-				printf("%s\n\n",send_buffer.frames[LFS].data); fflush(stdout);
+				printf("Frame %d was sent\n", LFS); fflush(stdout);
+				
 				free(frame_buff);
 				
 				infotype x;
@@ -134,7 +133,7 @@ int main(int argc, char *argv[]){
 				LFS = LFS + 1;
 			}
 			
-			//cek timeout
+			//check timeout
 			long int current_time = time(NULL);
 			infotype y;
 			Del(&packets,&y);
@@ -143,13 +142,13 @@ int main(int argc, char *argv[]){
 				frame_to_raw(send_buffer.frames[y.seqNum],frame_buff);
 				
 				sendto(udpSocket,frame_buff,(send_buffer.frames[y.seqNum].dataLength+10),0,(struct sockaddr *)&clientAddress,sizeof(clientAddress));   //kirimnya itu per frame, mgkn pake ukuran frames[pos]
-				printf("[%ld] frame %d was sent\n", time(NULL), y.seqNum); fflush(stdout);
+				printf("Frame %d was sent\n", y.seqNum); fflush(stdout);
 				free(frame_buff);
 				y.sentTime = time(NULL);
 			}
 			Add(&packets,y);
 			
-			// timeout setting
+			//set timeout
 			fd_set select_fds;
 			struct timeval timeout;
 
@@ -159,52 +158,47 @@ int main(int argc, char *argv[]){
 			timeout.tv_sec = 1;
 			timeout.tv_usec = 0;
 			
-			//terima ack
+			//accept ACK
 			packet_ack ack;
-			if (select(32, &select_fds, NULL, NULL, &timeout) == 0){	//menunggu 5 detik sampe timeout abis
+			if (select(32, &select_fds, NULL, NULL, &timeout) == 0){	//wait for 5 seconds until timeout
 				printf("Waiting for ACK...\n"); fflush(stdout);
 			} else {
-				// prepare raw to receive ACK
-				char* rawAck = (char*) malloc(ACKSIZE*sizeof(char));
-				len = recvfrom(udpSocket,rawAck,ACKSIZE,0,NULL,NULL);
+				char* rawAck = (char*) malloc(ackLength*sizeof(char));
+				len = recvfrom(udpSocket,rawAck,ackLength,0,NULL,NULL);
 				to_ack(&ack, rawAck);
 				
-				if ((ack.ack == 0x1) && (count_checksum(rawAck,5) == ack.checksum)) {
+				if ((ack.ack == 0x1) /*&& (count_checksum(rawAck,5) == ack.checksum)*/) {
 					LAR = ack.nextSeqNumber - 1;
 					if (LAR > maxLAR) {
 						maxLAR = LAR;
 					}
 
-					printf("ACK diterima. Nomor ACK : %d\n",LAR); fflush(stdout);
+					printf("ACK accepted. LAR : %d\n",LAR); fflush(stdout);
 					
 					isibuffer = isibuffer-1;
-					printf("sekarang isi buffer jadi %d\n",isibuffer); fflush(stdout);
+					printf("\nPacket in buffer :\n"); fflush(stdout);
 					printPrioQueue(packets);
 					
 					DelSpecific(&packets,LAR);
-					printf("sesudah dihapus jadi:\n"); fflush(stdout);
-					printPrioQueue(packets);
 					
-					if (LAR == seqNum) { //antara geser 1 atau geser banyak
-						if (maxLAR == LAR) {	//geser 1
-							printf("	geser 1\n"); fflush(stdout);
-							seqNum = seqNum + 1;	//geser sisi kiri sliding window
-							windowsize = windowsize + 1;	//geser sisi kanan sliding window
-						} else if (maxLAR > LAR) { //geser banyak
-							printf("	geser banyak\n"); fflush(stdout);
+					if (LAR == seqNum) {
+						if (maxLAR == LAR) {
+							seqNum = seqNum + 1;
+							windowsize = windowsize + 1;
+						} else if (maxLAR > LAR) {
 							seqNum = seqNum + (maxLAR - LAR);
 							windowsize = windowsize + (maxLAR - LAR);
 						}
 					}
-				} else if ((ack.ack == 0x0) || (count_checksum(rawAck,5) != ack.checksum)){	//ack.ack == 0x0
-					printf("NAK ini\n");
+				} else if ((ack.ack == 0x0) /*|| (count_checksum(rawAck,5) != ack.checksum)*/){
+					printf("NAK accepted, resending frame...\n");
 					int resendSeqNum = ack.nextSeqNumber - 1;
 					DelSpecific(&packets,resendSeqNum);
 					frame_buff = (char*) malloc(sizeof(char)*(send_buffer.frames[resendSeqNum].dataLength+10));
 					frame_to_raw(send_buffer.frames[resendSeqNum],frame_buff);
 					
 					sendto(udpSocket,frame_buff,(send_buffer.frames[resendSeqNum].dataLength+10),0,(struct sockaddr *)&clientAddress,sizeof(clientAddress));   //kirimnya itu per frame, mgkn pake ukuran frames[pos]
-					printf("[%ld] frame %d was sent\n", time(NULL), resendSeqNum); fflush(stdout);
+					printf("Frame %d was sent\n", resendSeqNum); fflush(stdout);
 					free(frame_buff);
 
 					infotype resendInfo;
@@ -217,13 +211,13 @@ int main(int argc, char *argv[]){
         }
         
         if (c == EOF) {
-			// send last sentinel
+			//sign the end of file to receiver
 			frame s = create_sentinel();
 			frame_buff = (char*) malloc(sizeof(char)*11);
 			frame_to_raw(s,frame_buff);
 			sendto(udpSocket,frame_buff,11,0,(struct sockaddr *)&clientAddress,sizeof(clientAddress));
 			free(frame_buff);
-			printf("FINISH\n"); fflush(stdout);
+			printf("Reached the end of file.\n"); fflush(stdout);
 			break;
 		}
     }
