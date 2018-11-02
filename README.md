@@ -84,7 +84,7 @@ make sender
 ```
 contoh:
 ```
-receiver out.txt 5 5 8080
+./receiver out.txt 5 5 8080
 ```
 * sender.c
 ```
@@ -92,7 +92,7 @@ receiver out.txt 5 5 8080
 ```
 contoh:
 ```
-sender tes.txt 5 5 127.0.0.1 8080
+./sender tes.txt 5 5 127.0.0.1 8080
 ```
 
 ## Cara Kerja
@@ -122,8 +122,8 @@ Mengimplementasikan prosedur receive file dan send file
 
 ## Pembagian Tugas
 
-1. Gloryanson (13516060)[tab]: 
-2. Samuel (13516069)[tab][tab]: 
-3. Prisila (13516129)[tab][tab]: 
+1. Gloryanson (13516060): 
+2. Samuel (13516069): 
+3. Prisila (13516129): 
 
 
