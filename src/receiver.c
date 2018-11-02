@@ -9,9 +9,9 @@
 typedef struct {
   frame* frames;
   int length;
-} BufferArray;
+} Buffer;
 
-void initBufferArray(BufferArray* a, int buffersize) {
+void initBuffer(Buffer* a, int buffersize) {
     // free(a->frames);
     a->frames = (frame*) malloc(buffersize * sizeof(frame));
     a->length = 0;
@@ -22,7 +22,7 @@ void die(char *s){
     exit(1);
 }
 
-void init_socket(int* udpSocket, int port){
+void initSocket(int* udpSocket, int port){
     /*Create UDP socket*/
     *udpSocket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
     if(*udpSocket < 0){
@@ -62,7 +62,7 @@ void writeToFile(char* filename, char* message, int n) {
     fclose(fp);
 }
 
-void drainBufferArray(BufferArray* a, char* filename, int buffersize) { //buat nulis ke file
+void emptyBufferContent(Buffer* a, char* filename, int buffersize) { //buat nulis ke file
     printf("length buffer : %d \n", a->length); 
     for (int i = 0; i < a->length; i++) {
         frame aframe = *(a->frames+i);
@@ -71,10 +71,10 @@ void drainBufferArray(BufferArray* a, char* filename, int buffersize) { //buat n
     }
     // printf("\n");
     free(a->frames);
-    initBufferArray(a,buffersize);
+    initBuffer(a,buffersize);
 }
 
-void insertBufferArray(BufferArray *a, frame aframe, int buffersize) {
+void insertToBuffer(Buffer *a, frame aframe, int buffersize) {
     printf("masuk insert buffer array\n");
     int curr = a->length;
     int last_mem = curr + 1;
@@ -88,7 +88,7 @@ void insertBufferArray(BufferArray *a, frame aframe, int buffersize) {
     printf("seqNumber : %d\n",aframe.seqNumber);
 }
 
-void initFile(char* filename){
+void openFile(char* filename){
     FILE *fp;
     fp=fopen(filename, "w");
     fclose(fp);
@@ -108,17 +108,17 @@ int main(int argc, char *argv[]){
 
     int udpSocket, len;
     // open connection
-    init_socket(&udpSocket, port);
+    initSocket(&udpSocket, port);
 
     // initial buffer
-    BufferArray recv_buffer;
-    initBufferArray(&recv_buffer,buffersize);
+    Buffer recv_buffer;
+    initBuffer(&recv_buffer,buffersize);
 
     // initial file
-    initFile(filename);
+    openFile(filename);
 
     
-    //int LAF = LFR + RWS;    LAF equivalent sama LFS
+    //LAF equivalent sama LFS
     int LFR = -1;
     int seqNum = 0;
     int windowsize = seqNum + RWS;
@@ -159,14 +159,14 @@ int main(int argc, char *argv[]){
 
                 if (frm.seqNumber == -1) {
                     printf("kan\n");    fflush(stdout);
-                    drainBufferArray(&recv_buffer, filename, buffersize);    //pindahin dari buffer ke file
+                    emptyBufferContent(&recv_buffer, filename, buffersize);    //pindahin dari buffer ke file
                     printf("FINISH ALL MSG\n");
                     finished = 1;
                     break;
                 } else {
                     //nanti hrs dicek salah ga, kalau salah kirim NAK.
                     // insert to buffer & accept frame
-                    insertBufferArray(&recv_buffer,frm,buffersize);
+                    insertToBuffer(&recv_buffer,frm,buffersize);
                     emptySpace = emptySpace - 1;
 
                     LFR = frm.seqNumber;
@@ -199,17 +199,17 @@ int main(int argc, char *argv[]){
                     
                     packet_ack send_ack;
 
-                    char* rawFrame = (char*) malloc(sizeof(char)*(frm.dataLength+10));
-                    frame_to_raw(frm, rawFrame);
-                    if (count_checksum(rawFrame,1033) == frm.checksum){
+                    //char* rawFrame = (char*) malloc(sizeof(char)*(frm.dataLength+10));
+                    //frame_to_raw(frm, rawFrame);
+                    //if (count_checksum(rawFrame,1033) == frm.checksum){
                         send_ack.ack = 0x1;
 
-                    } else {    // NAK
-                        send_ack.ack = 0x0;
-                    }
+                    //} else {    // NAK
+                        //send_ack.ack = 0x0;
+                    //}
 
-                    printf("%d,%d",count_checksum(rawFrame,1033),frm.checksum);
-                    free(rawFrame);
+                    /*printf("%d,%d",count_checksum(rawFrame,1033),frm.checksum);*/
+                    //free(rawFrame);
                     
                     send_ack.nextSeqNumber = frm.seqNumber + 1;
 
@@ -231,7 +231,7 @@ int main(int argc, char *argv[]){
 
         // if next frame hit maximum allowed buffer
         if (emptySpace == 0) {
-            drainBufferArray(&recv_buffer,filename,buffersize);
+            emptyBufferContent(&recv_buffer,filename,buffersize);
             LFR = -1;
             seqNum = 0;
             windowsize = seqNum + RWS;
