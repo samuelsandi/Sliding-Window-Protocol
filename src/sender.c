@@ -98,7 +98,7 @@ int main(int argc, char *argv[]){
 			frame frm = create_frame(n,length,temp); 
 			char* rawFrame = (char*) malloc(sizeof(char)*framesize);
 			frame_to_raw(frm, rawFrame);
-			frm.checksum = count_checksum(rawFrame, framesize);
+			frm.checksum = count_checksum_packet(frm);
 			free(rawFrame);
 			send_buffer.frames[n] = frm;
 			n++;
@@ -166,7 +166,7 @@ int main(int argc, char *argv[]){
 				len = recvfrom(udpSocket,rawAck,ackLength,0,NULL,NULL);
 				to_ack(&ack, rawAck);
 				
-				if ((ack.ack == 0x1) /*&& (count_checksum(rawAck,5) == ack.checksum)*/) {
+				if ((ack.ack == 0x1) && (count_checksum_ACK(ack) == ack.checksum)) {
 					LAR = ack.nextSeqNumber - 1;
 					if (LAR > maxLAR) {
 						maxLAR = LAR;
@@ -189,7 +189,7 @@ int main(int argc, char *argv[]){
 							windowsize = windowsize + (maxLAR - LAR);
 						}
 					}
-				} else if ((ack.ack == 0x0) /*|| (count_checksum(rawAck,5) != ack.checksum)*/){
+				} else if ((ack.ack == 0x0) || (count_checksum_ACK(ack) == ack.checksum)){
 					printf("NAK accepted, resending frame...\n");
 					int resendSeqNum = ack.nextSeqNumber - 1;
 					DelSpecific(&packets,resendSeqNum);
@@ -211,7 +211,7 @@ int main(int argc, char *argv[]){
         
         if (c == EOF) {
 			//sign the end of file to receiver
-			frame s = create_sentinel();
+			frame s = create_eof();
 			frame_buff = (char*) malloc(sizeof(char)*11);
 			frame_to_raw(s,frame_buff);
 			sendto(udpSocket,frame_buff,11,0,(struct sockaddr *)&clientAddress,sizeof(clientAddress));

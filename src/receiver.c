@@ -179,12 +179,11 @@ int main(int argc, char *argv[]){
 
                     //char* rawFrame = (char*) malloc(sizeof(char)*(frm.dataLength+10));
                     //frame_to_raw(frm, rawFrame);
-                    //if (count_checksum(rawFrame,1033) == frm.checksum){
+                    if (count_checksum_packet(frm) == frm.checksum){
                         send_ack.ack = 0x1;
-
-                    //} else {    // NAK
-                        //send_ack.ack = 0x0;
-                    //}
+                    } else {    // NAK
+                        send_ack.ack = 0x0;
+                    }
 
                     /*printf("%d,%d",count_checksum(rawFrame,1033),frm.checksum);*/
                     //free(rawFrame);
@@ -193,7 +192,7 @@ int main(int argc, char *argv[]){
 
                     char* rawAck = (char*) malloc(sizeof(char)*6);
                     ack_to_raw(send_ack, rawAck);
-                    send_ack.checksum = count_checksum(rawAck,5);
+                    send_ack.checksum = count_checksum_ACK(send_ack);
                     rawAck[5] = send_ack.checksum;
 
                     sendto(udpSocket,rawAck,6,0,(struct sockaddr*) &clientAddress, clientSize);

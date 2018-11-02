@@ -85,16 +85,25 @@ void to_ack(packet_ack* ack_frm, char* raw) {
 	free(x);
 }
 
-char count_checksum (char* x, int length) {	//Fungsi ini menerima isi frame atau ACK dalam bentuk raw beserta panjang frame - 1 (panjang frame seluruhnya dikurangi byte checksum) dan mengembalikan nilai checksum paket tersebut
-	unsigned int n = 0;
-	while(length--) {
-		n += (unsigned char) *(x++);
-		//printf("%d,%c\n",n,n);
+unsigned char count_checksum_packet(frame frm) {
+	unsigned char result = 0;
+	result += frm.soh;
+	result += frm.seqNumber & 0xFF;
+	result += frm.dataLength & 0xFF;
+	for (int i=0;i<frm.dataLength;i++){
+		result += *(frm.data+i);
 	}
-	return (unsigned char) ~n;
+	return result;
 }
 
-frame create_frame(int n, int dl, char* c){	//belum beres
+unsigned char count_checksum_ACK(packet_ack packet) {
+	unsigned char result = 0;
+	result += packet.ack;
+	result += packet.nextSeqNumber & 0xFF;
+	return result;
+}
+
+frame create_frame(int n, int dl, char* c){
 	frame frm;
 	frm.soh = 0x1;
 	frm.seqNumber = n;
@@ -104,7 +113,7 @@ frame create_frame(int n, int dl, char* c){	//belum beres
 	return frm;
 }
 
-frame create_sentinel(){ /* belum beres, membingungkan sentinel nanti ya liat lagi */
+frame create_eof(){
 	frame frm;
 	frm.soh = 0xFF;
 	frm.seqNumber = -1;

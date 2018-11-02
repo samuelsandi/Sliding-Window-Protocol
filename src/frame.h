@@ -9,13 +9,13 @@ typedef struct {
 	int seqNumber;
 	int dataLength;
 	char* data;
-	char checksum;
+	unsigned char checksum;
 } frame;
 
 typedef struct {
 	char ack;
 	int nextSeqNumber;
-	char checksum;
+	unsigned char checksum;
 } packet_ack;
 
 void frame_to_raw(frame frm, char* raw);
@@ -26,10 +26,12 @@ void ack_to_raw(packet_ack ack_frm, char* raw);
 
 void to_ack(packet_ack* ack_frm, char* raw);
 
-char count_checksum(char* x, int len);
+unsigned char count_checksum_packet(frame frm);
+
+unsigned char count_checksum_ACK(packet_ack paket);
 
 frame create_frame(int n, int dl, char* c);
 
-frame create_sentinel();
+frame create_eof();
 
 #endif
