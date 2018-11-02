@@ -94,17 +94,13 @@ int main(int argc, char *argv[]){
 				temp[length] = (char) c;
 				length = length + 1;
 			}
-
-			/*if (c == EOF) {
-				temp[length-1] = '\0';
-				length = length - 1;
-			}*/
 			
 			framesize = length + 10;
 			frame frm = create_frame(n,length,temp); 
-			char* raw = (char*) malloc(sizeof(char)*framesize);
-			frame_to_raw(frm, raw);
-			frm.checksum = count_checksum(raw, 8);
+			char* rawFrame = (char*) malloc(sizeof(char)*framesize);
+			frame_to_raw(frm, rawFrame);
+			frm.checksum = count_checksum(rawFrame, 1033);
+			free(rawFrame);
 			send_buffer.frames[n] = frm;    //trs nanti frame yg udh jadi (ada datanya+checksum) dimasukin ke send_buffer.frames[n]
 			n++;
 		}
@@ -169,12 +165,11 @@ int main(int argc, char *argv[]){
 				printf("Waiting for ACK...\n"); fflush(stdout);
 			} else {
 				// prepare raw to receive ACK
-				raw = (char*) malloc(ACKSIZE*sizeof(char));
-				len = recvfrom(udpSocket,raw,ACKSIZE,0,NULL,NULL);
-				to_ack(&ack, raw);
-				free(raw);
-
-				if (ack.ack == 0x1) {
+				char* rawAck = (char*) malloc(ACKSIZE*sizeof(char));
+				len = recvfrom(udpSocket,rawAck,ACKSIZE,0,NULL,NULL);
+				to_ack(&ack, rawAck);
+				
+				if ((ack.ack == 0x1) && (count_checksum(rawAck,5) == ack.checksum)) {
 					LAR = ack.nextSeqNumber - 1;
 					if (LAR > maxLAR) {
 						maxLAR = LAR;
@@ -201,7 +196,7 @@ int main(int argc, char *argv[]){
 							windowsize = windowsize + (maxLAR - LAR);
 						}
 					}
-				} else if (ack.ack == 0x0 /*|| count_checksum(ack) == ack.checksum*/){	//ack.ack == 0x0
+				} else if ((ack.ack == 0x0) || (count_checksum(rawAck,5) != ack.checksum)){	//ack.ack == 0x0
 					printf("NAK ini\n");
 					int resendSeqNum = ack.nextSeqNumber - 1;
 					DelSpecific(&packets,resendSeqNum);
@@ -216,7 +211,8 @@ int main(int argc, char *argv[]){
 					resendInfo.sentTime = time(NULL);
 					resendInfo.seqNum = resendSeqNum;
 					Add(&packets,resendInfo);
-				} 
+				}
+				free(rawAck); 
 			}
         }
         

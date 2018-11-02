@@ -199,24 +199,28 @@ int main(int argc, char *argv[]){
                     
                     packet_ack send_ack;
 
-                    //if (count_checksum(frm) == frm.checksum){
+                    char* rawFrame = (char*) malloc(sizeof(char)*(frm.dataLength+10));
+                    frame_to_raw(frm, rawFrame);
+                    if (count_checksum(rawFrame,1033) == frm.checksum){
                         send_ack.ack = 0x1;
-                    //} else {    //dia NAK
-                        //send_ack.ack = 0x0;
-                    //}
+
+                    } else {    // NAK
+                        send_ack.ack = 0x0;
+                    }
+
+                    printf("%d,%d",count_checksum(rawFrame,1033),frm.checksum);
+                    free(rawFrame);
                     
                     send_ack.nextSeqNumber = frm.seqNumber + 1;
-                    send_ack.checksum = 0x0;
-                    
-                    char* raw = (char*) malloc(6*sizeof(char));
 
-                    ack_to_raw(send_ack,raw);
-                    send_ack.checksum = count_checksum(raw,5);
-                    raw[5] = send_ack.checksum;
+                    char* rawAck = (char*) malloc(sizeof(char)*6);
+                    ack_to_raw(send_ack, rawAck);
+                    send_ack.checksum = count_checksum(rawAck,5);
+                    rawAck[5] = send_ack.checksum;
 
-                    sendto(udpSocket,raw,6,0,(struct sockaddr*) &clientAddress, clientSize);
+                    sendto(udpSocket,rawAck,6,0,(struct sockaddr*) &clientAddress, clientSize);
                     printf("BERHASIL SEND\n");
-                    free(raw);
+                    free(rawAck);
                 }
             }
         }
