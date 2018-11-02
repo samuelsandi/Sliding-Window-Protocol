@@ -26,7 +26,7 @@ void ack_to_raw(packet_ack ack_frm, char* raw);
 
 void to_ack(packet_ack* ack_frm, char* raw);
 
-char checksum_str(char* x, int len);
+char count_checksum(char* x, int len);
 
 frame create_frame(int n, int dl, char* c);
 
