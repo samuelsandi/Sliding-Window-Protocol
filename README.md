@@ -1,7 +1,7 @@
-## Sliding-Window-Protocol
+# Sliding-Window-Protocol
 Milestone 1 Tugas Besar IF3130 Jaringan Komputer Institut Teknologi Bandung
 
-# Dasar Teori
+## Dasar Teori
 Komunikasi antar komputer merupakan hal yang sangat penting di abad 21 ini. Hampir semua
 aplikasi yang kita gunakan sehari-hari merupakan aplikasi yang berkomunikasi dengan
 komputer lain. Akan tetapi, komunikasi antar dua komputer tidak selalu berjalan sesuai yang
@@ -33,7 +33,7 @@ http://www.ccs-labs.org/teaching/rn/animations/gbn_sr/. Teori yang dijelaskan pa
 hanyalah gambaran kasar saja. Peserta diminta untuk mengeksplorasi lebih jauh secara
 mandiri.
 
-# Spesifikasi Tugas
+## Spesifikasi Tugas
 Program yang akan dibuat terdiri dari dua file, yaitu sender dan receiver. Implementasi
 diwajibkan menggunakan bahasa C/C++ dengan protokol UDP. Program sender akan
 membaca suatu file dan mengirimnya ke receiver dengan menggunakan Sliding Window
@@ -54,5 +54,9 @@ Berikut ini adalah format dari ACK yang dikirim.
 Untuk mensimulasikan packet loss, anda dapat menggunakan tools pumba yang detailnya
 dapat dilihat pada https://github.com/alexei-led/pumba.
 Untuk memudahkan penilaian, silahkan gunakan format berikut untuk menjalankan program.
-. /sendfile <filename> <windowsize> <buffersize> <destination_ip> <destination_port>
-. /recvfile <filename> <windowsize> <buffersize> <port>
+```
+./sendfile <filename> <windowsize> <buffersize> <destination_ip> <destination_port>
+```
+```
+./recvfile <filename> <windowsize> <buffersize> <port>
+```
